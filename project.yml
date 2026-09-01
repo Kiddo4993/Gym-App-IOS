@@ -1,0 +1,81 @@
+name: GymTracker
+options:
+  bundleIdPrefix: com.gymtracker
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  GymTrackerKit:
+    path: Packages/GymTrackerKit
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+
+targets:
+  GymTracker:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: GymTracker
+    dependencies:
+      - package: GymTrackerKit
+      - target: GymTrackerWidgetExtension
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gymtracker.app
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: GymTracker/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+    entitlements:
+      path: GymTracker/GymTracker.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.gymtracker.shared
+
+  GymTrackerWidgetExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: GymTrackerWidget
+    dependencies:
+      - package: GymTrackerKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gymtracker.app.widget
+        PRODUCT_NAME: GymTrackerWidget
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: GymTrackerWidget/Info.plist
+      properties:
+        CFBundleDisplayName: GymTracker
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: GymTrackerWidget/GymTrackerWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.gymtracker.shared
+
+schemes:
+  GymTracker:
+    build:
+      targets:
+        GymTracker: all
+        GymTrackerWidgetExtension: all
+    run:
+      config: Debug
+    archive:
+      config: Release
