@@ -2,7 +2,10 @@ import Foundation
 
 /// Decides which day type is "up next", cycling Push → Pull → Legs → Rest → Push …
 public enum NextDayCalculator {
+    /// A manual override (set via `DayOverrideStore`) always wins, so users can correct or
+    /// kick off the rotation without needing to log a workout first.
     public static func nextDayType(afterLast workout: Workout?) -> DayType {
+        if let override = DayOverrideStore.current { return override }
         guard let workout else { return .push }
         return workout.dayType.next
     }

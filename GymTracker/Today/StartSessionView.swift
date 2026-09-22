@@ -79,6 +79,10 @@ struct StartSessionView: View {
         context.insert(workout)
         try? context.save()
         activeWorkout = workout
+
+        // A real workout is now logged, so the automatic rotation can take back over.
+        DayOverrideStore.current = nil
+        DayNotificationManager.refresh()
     }
 }
 
