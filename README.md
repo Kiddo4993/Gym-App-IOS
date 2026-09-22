@@ -20,7 +20,7 @@ Gym-App-IOS/
 │       └── Sources/GymTrackerKit/
 │           ├── Models/                Exercise, Workout, ExerciseLog, SetLog, DayType, WeightUnit
 │           ├── Persistence/           SharedModelContainer (App Group store), SeedData
-│           ├── Utilities/             NextDayCalculator, VolumeCalculator, StreakCalculator, DashboardSnapshot
+│           ├── Utilities/             NextDayCalculator, VolumeCalculator, StreakCalculator, DashboardSnapshot, DayOverrideStore
 │           └── DesignSystem/          Theme (shared by app + widget)
 ├── GymTracker/                       ← iOS app target
 │   ├── GymTrackerApp.swift
@@ -30,7 +30,8 @@ Gym-App-IOS/
 │   ├── History/                       Per-exercise session history + edit-past-entry sheet
 │   ├── Progress/                      Swift Charts progression view with personal-best highlight
 │   ├── Calendar/                      Month grid + streak; tap a trained day for its full session detail
-│   ├── Settings/                      Units toggle, exercise library management
+│   ├── Settings/                      Units toggle, exercise library management, morning reminder + manual day override
+│   ├── Notifications/                 DayNotificationManager: daily 8:00 AM "next up" local notification
 │   └── Preview/                       In-memory seeded container for SwiftUI previews
 └── GymTrackerWidget/                 ← WidgetKit extension: Home Screen (small/medium, interactive
                                          Start button) + Lock Screen (rectangular/circular) widgets
