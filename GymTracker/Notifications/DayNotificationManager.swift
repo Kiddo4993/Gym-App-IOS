@@ -8,9 +8,10 @@ import GymTrackerKit
 /// replaced (same identifier, freshly computed content) any time the rotation could have
 /// changed: app launch/foreground, a session being logged, or a manual day override. The
 /// request itself repeats daily at 8:00 AM, so it keeps firing with the last known content even
-/// if the user doesn't reopen the app for a few days.
+/// if the user doesn't reopen the app for a few days. Sessions started from the widget update
+/// it too (see `MorningReminder` in GymTrackerKit, which builds the request).
 enum DayNotificationManager {
-    static let identifier = "com.gymtracker.morningDayReminder"
+    static let identifier = MorningReminder.identifier
     static let enabledStorageKey = "morningReminderEnabled"
 
     static var isEnabled: Bool {
@@ -41,29 +42,7 @@ enum DayNotificationManager {
             guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
 
             let snapshot = DashboardSnapshot.load(from: SharedModelContainer.make())
-            let day = snapshot.nextDayType
-
-            let content = UNMutableNotificationContent()
-            content.title = "\(day.displayName) day"
-            content.body = body(for: day)
-            content.sound = .default
-
-            var dateComponents = DateComponents()
-            dateComponents.hour = 8
-            dateComponents.minute = 0
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-
-            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
-            center.add(request)
-        }
-    }
-
-    private static func body(for day: DayType) -> String {
-        switch day {
-        case .push: "Time to train chest, shoulders, and triceps."
-        case .pull: "Time to train back and biceps."
-        case .legs: "Time to train legs."
-        case .rest: "Rest day — recover and come back stronger tomorrow."
+            center.add(MorningReminder.request(for: snapshot.nextDayType))
         }
     }
 }
