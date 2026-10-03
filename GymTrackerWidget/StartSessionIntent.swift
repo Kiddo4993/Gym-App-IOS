@@ -23,8 +23,14 @@ struct StartSessionIntent: AppIntent {
         let alreadyStartedToday = mostRecent.map { Calendar.current.isDateInToday($0.date) } ?? false
         if !alreadyStartedToday {
             let nextDay = NextDayCalculator.nextDayType(afterLast: mostRecent)
-            context.insert(Workout(dayType: nextDay))
+            let workout = Workout(dayType: nextDay)
+            context.insert(workout)
             try? context.save()
+
+            // Same follow-up as starting a session in the app: a real workout is logged, so the
+            // automatic rotation takes back over, and tomorrow's 8 AM reminder names the new next day.
+            DayOverrideStore.current = nil
+            await MorningReminder.updateIfScheduled(for: NextDayCalculator.nextDayType(afterLast: workout))
         }
 
         WidgetCenter.shared.reloadTimelines(ofKind: "GymTrackerWidget")
