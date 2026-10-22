@@ -52,9 +52,21 @@ private struct KeypadButton: View {
             .font(.system(size: 24, weight: .semibold, design: .rounded))
             .frame(maxWidth: .infinity, minHeight: 58)
             .foregroundStyle(isEnabled ? Theme.textPrimary : Theme.textTertiary)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KeyStyle())
         .disabled(!isEnabled)
+        .accessibilityLabel(key == "⌫" ? "Delete" : key == "." ? "Decimal point" : key)
+    }
+}
+
+/// Keys light up while held, like the system keyboard, so every tap is confirmed.
+private struct KeyStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                configuration.isPressed ? Theme.surfaceRaised : Theme.surface,
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .sensoryFeedback(.selection, trigger: configuration.isPressed) { _, pressed in pressed }
     }
 }

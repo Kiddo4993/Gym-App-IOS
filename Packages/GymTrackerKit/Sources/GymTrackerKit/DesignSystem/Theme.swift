@@ -14,15 +14,13 @@ public enum Theme {
     public static let textSecondary = Color.white.opacity(0.56)
     public static let textTertiary = Color.white.opacity(0.34)
     public static let divider = Color.white.opacity(0.08)
+    /// Hairline edge on cards, so surfaces stay separated from the near-black background.
+    public static let stroke = Color.white.opacity(0.06)
     public static let danger = Color(red: 1.0, green: 0.38, blue: 0.38)
 
-    /// A restrained per-day-type tint, used only for small glyphs and dots, never large fills.
+    /// The tint for a day type. Every training day shares the one accent so the app has a single
+    /// main color; day types are told apart by name and icon. Rest stays neutral gray.
     public static func accent(for dayType: DayType) -> Color {
-        switch dayType {
-        case .push: Color(red: 0.78, green: 1.0, blue: 0.32)
-        case .pull: Color(red: 0.42, green: 0.78, blue: 1.0)
-        case .legs: Color(red: 1.0, green: 0.58, blue: 0.32)
-        case .rest: Color.white.opacity(0.4)
-        }
+        dayType == .rest ? Color.white.opacity(0.4) : accent
     }
 }

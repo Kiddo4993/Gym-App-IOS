@@ -20,8 +20,11 @@ struct ExerciseHistoryView: View {
         ZStack {
             Theme.background.ignoresSafeArea()
             if logs.isEmpty {
-                Text("No sessions logged yet")
-                    .foregroundStyle(Theme.textSecondary)
+                ContentUnavailableView(
+                    "No sessions yet",
+                    systemImage: "clock.arrow.circlepath",
+                    description: Text("Log \(exercise.name) during a session and it shows up here.")
+                )
             } else {
                 List {
                     ForEach(logs) { log in
@@ -31,9 +34,10 @@ struct ExerciseHistoryView: View {
                             HistoryRow(log: log, unit: unit)
                         }
                         .listRowBackground(Theme.surface)
+                        .listRowSeparatorTint(Theme.divider)
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
             }
         }
@@ -53,32 +57,48 @@ private struct HistoryRow: View {
         (log.sets ?? []).sorted { $0.setNumber < $1.setNumber }
     }
 
+    private var volume: Double { VolumeCalculator.estimatedVolume(for: sets, in: unit) }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text((log.workout?.date ?? .now).formatted(date: .abbreviated, time: .omitted))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text((log.workout?.date ?? .now).formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Text("\(volume.weightText) \(unit.symbol) vol")
+                    .font(.caption.weight(.medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textTertiary)
+            }
 
             ForEach(sets) { set in
-                HStack {
-                    Text("Set \(set.setNumber)")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textTertiary)
-                        .frame(width: 46, alignment: .leading)
-                    Text("\(displayValue(set.weight(in: unit))) \(unit.symbol)")
-                        .font(.subheadline.weight(.medium))
+                HStack(spacing: 10) {
+                    Text("\(set.setNumber)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Theme.accent(for: log.exercise?.dayType ?? .push))
+                        .frame(width: 20, height: 20)
+                        .background(Theme.accent(for: log.exercise?.dayType ?? .push).opacity(0.12), in: Circle())
+                    Text("\(set.weight(in: unit).weightText) \(unit.symbol)")
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textPrimary)
                     Spacer()
-                    Text("\(set.fullReps) full · \(set.partialReps) partial")
-                        .font(.caption)
+                    Text("\(set.fullReps) reps")
+                        .font(.subheadline)
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textSecondary)
+                    if set.partialReps > 0 {
+                        Text("+\(set.partialReps)")
+                            .font(.caption.weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textTertiary)
+                            .accessibilityLabel("plus \(set.partialReps) partials")
+                    }
                 }
+                .accessibilityElement(children: .combine)
             }
         }
         .padding(.vertical, 6)
-    }
-
-    private func displayValue(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%.1f", value)
     }
 }

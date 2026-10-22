@@ -16,7 +16,7 @@ struct GymProgressView: View {
     private var unit: WeightUnit { WeightUnit(rawValue: unitRaw) ?? .lb }
 
     enum Metric: String, CaseIterable, Identifiable {
-        case weight = "Weight"
+        case weight = "Top Weight"
         case volume = "Volume"
         var id: String { rawValue }
     }
@@ -27,41 +27,67 @@ struct GymProgressView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    Picker("Exercise", selection: $selected) {
-                        Text("Select an exercise").tag(Exercise?.none)
-                        ForEach(trainableExercises) { ex in
-                            Text(ex.name).tag(Optional(ex))
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(Theme.accent)
-                    .padding(.horizontal)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    exerciseMenu
 
                     if let exercise = selected {
                         Picker("Metric", selection: $metric) {
                             ForEach(Metric.allCases) { Text($0.rawValue).tag($0) }
                         }
                         .pickerStyle(.segmented)
-                        .padding(.horizontal)
 
                         ExerciseProgressChart(exercise: exercise, metric: metric, unit: unit)
-                    } else {
-                        Spacer()
-                        Text("Pick an exercise to see its progression")
-                            .foregroundStyle(Theme.textSecondary)
-                        Spacer()
                     }
                 }
-                .padding(.top, 12)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
+            .scrollIndicators(.hidden)
+            .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Progress")
         }
         .onAppear {
             if selected == nil { selected = trainableExercises.first }
         }
+    }
+
+    /// A card-sized menu button: the native `.menu` picker is a small tinted link that's easy
+    /// to miss, and the exercise choice drives everything else on this screen.
+    private var exerciseMenu: some View {
+        Menu {
+            ForEach([DayType.push, .pull, .legs]) { day in
+                Section(day.displayName) {
+                    ForEach(trainableExercises.filter { $0.dayType == day }) { ex in
+                        Button(ex.name) { selected = ex }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 12) {
+                IconTile(
+                    systemName: selected?.dayType.symbolName ?? "dumbbell",
+                    tint: selected.map { Theme.accent(for: $0.dayType) } ?? Theme.accent,
+                    size: 40
+                )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("EXERCISE")
+                        .font(.caption2.weight(.bold))
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.textTertiary)
+                    Text(selected?.name ?? "Choose an exercise")
+                        .font(.headline)
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            .cardStyle(padding: 14)
+        }
+        .buttonStyle(PressableRowStyle())
     }
 }
 
@@ -75,6 +101,8 @@ private struct ExerciseProgressChart: View {
     let exercise: Exercise
     let metric: GymProgressView.Metric
     let unit: WeightUnit
+
+    private var tint: Color { Theme.accent(for: exercise.dayType) }
 
     private var points: [ProgressPoint] {
         let sessions = (exercise.logs ?? [])
@@ -103,54 +131,94 @@ private struct ExerciseProgressChart: View {
         return last.id == best.id && points.dropLast().allSatisfy { $0.value < last.value }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if isLatestANewBest {
-                Label("New personal best!", systemImage: "flame.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.accent(for: exercise.dayType))
-                    .padding(.horizontal)
-            }
+    /// Percent change from the first logged session to the latest one.
+    private var changeText: String {
+        guard let first = points.first?.value, let last = points.last?.value, first > 0, points.count > 1 else { return "–" }
+        let pct = (last - first) / first * 100
+        return (pct >= 0 ? "+" : "") + String(format: "%.0f%%", pct)
+    }
 
-            if points.isEmpty {
-                Spacer()
-                Text("No data yet for this exercise")
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer()
-            } else {
-                Chart {
-                    ForEach(points) { point in
-                        LineMark(x: .value("Date", point.date), y: .value(metric.rawValue, point.value))
-                            .foregroundStyle(Theme.accent(for: exercise.dayType))
-                            .interpolationMethod(.catmullRom)
-                        PointMark(x: .value("Date", point.date), y: .value(metric.rawValue, point.value))
-                            .foregroundStyle(Theme.accent(for: exercise.dayType))
-                    }
-                    if let best = personalBest {
-                        PointMark(x: .value("Date", best.date), y: .value(metric.rawValue, best.value))
-                            .symbolSize(140)
+    var body: some View {
+        if points.isEmpty {
+            ContentUnavailableView(
+                "No data yet",
+                systemImage: "chart.xyaxis.line",
+                description: Text("Log \(exercise.name) in a session and your progress shows up here.")
+            )
+            .padding(.top, 40)
+        } else {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 10) {
+                    StatTile(value: personalBest.map { $0.value.weightText } ?? "–", label: "Best (\(unit.symbol))", systemImage: "trophy.fill", tint: tint)
+                    StatTile(value: points.last.map { $0.value.weightText } ?? "–", label: "Latest", systemImage: "clock")
+                    StatTile(value: changeText, label: "Change", systemImage: "arrow.up.right")
+                }
+
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text(metric == .weight ? "Top set weight" : "Estimated volume")
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.textPrimary)
-                            .annotation(position: .top) {
-                                Text("Best").font(.caption2.weight(.bold)).foregroundStyle(Theme.textPrimary)
-                            }
+                        Spacer()
+                        if isLatestANewBest {
+                            Label("New best", systemImage: "flame.fill")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(tint, in: Capsule())
+                        }
                     }
+
+                    chart
+                        .frame(height: 220)
                 }
-                .chartXAxis {
-                    AxisMarks { _ in
-                        AxisGridLine().foregroundStyle(Theme.divider)
-                        AxisValueLabel().foregroundStyle(Theme.textTertiary)
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks { _ in
-                        AxisGridLine().foregroundStyle(Theme.divider)
-                        AxisValueLabel().foregroundStyle(Theme.textTertiary)
-                    }
-                }
-                .padding()
-                .cardStyle()
-                .padding(.horizontal)
+                .cardStyle(padding: 16)
+
+                Text("\(points.count) sessions logged · partial reps count at half weight in volume.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textTertiary)
             }
         }
+    }
+
+    private var chart: some View {
+        Chart {
+            ForEach(points) { point in
+                AreaMark(x: .value("Date", point.date), y: .value(metric.rawValue, point.value))
+                    .foregroundStyle(LinearGradient(colors: [tint.opacity(0.28), tint.opacity(0)], startPoint: .top, endPoint: .bottom))
+                    .interpolationMethod(.monotone)
+                LineMark(x: .value("Date", point.date), y: .value(metric.rawValue, point.value))
+                    .foregroundStyle(tint)
+                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .interpolationMethod(.monotone)
+            }
+            if let best = personalBest {
+                PointMark(x: .value("Date", best.date), y: .value(metric.rawValue, best.value))
+                    .symbolSize(90)
+                    .foregroundStyle(Theme.textPrimary)
+                    .annotation(position: .top, spacing: 6) {
+                        Text(best.value.weightText)
+                            .font(.caption2.weight(.bold))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+            }
+        }
+        .chartYScale(domain: .automatic(includesZero: false))
+        .chartXAxis {
+            AxisMarks(values: .automatic(desiredCount: 4)) { _ in
+                AxisGridLine().foregroundStyle(Theme.divider)
+                AxisValueLabel(format: .dateTime.month(.abbreviated).day()).foregroundStyle(Theme.textTertiary)
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { _ in
+                AxisGridLine().foregroundStyle(Theme.divider)
+                AxisValueLabel().foregroundStyle(Theme.textTertiary)
+            }
+        }
+        .accessibilityLabel("\(metric.rawValue) chart for \(exercise.name)")
+        .accessibilityValue("Best \(personalBest?.value.weightText ?? "none"), latest \(points.last?.value.weightText ?? "none")")
     }
 }
