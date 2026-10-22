@@ -9,6 +9,10 @@ struct GymEntry: TimelineEntry {
 
     /// Today is always the last entry in `lastSevenDays` (see `DashboardSnapshot.load`).
     var startedToday: Bool { snapshot.lastSevenDays.last?.dayType != nil }
+
+    /// The day the widget features: today's once it has been started, otherwise the next one.
+    /// (`nextDayType` already counts today's workout, so it would show tomorrow's day.)
+    var shownDay: DayType { snapshot.lastSevenDays.last?.dayType ?? snapshot.nextDayType }
 }
 
 struct GymTrackerTimelineProvider: TimelineProvider {
@@ -85,11 +89,11 @@ private struct SmallWidgetView: View {
 
             Spacer()
 
-            Image(systemName: entry.snapshot.nextDayType.symbolName)
+            Image(systemName: entry.shownDay.symbolName)
                 .font(.system(size: 22))
-                .foregroundStyle(Theme.accent(for: entry.snapshot.nextDayType))
+                .foregroundStyle(Theme.accent(for: entry.shownDay))
 
-            Text(entry.snapshot.nextDayType.displayName.uppercased())
+            Text(entry.shownDay.displayName.uppercased())
                 .font(.system(size: 24, weight: .heavy, design: .rounded))
                 .foregroundStyle(Theme.textPrimary)
 
@@ -109,15 +113,15 @@ private struct MediumWidgetView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("NEXT UP")
+                Text(entry.startedToday ? "TODAY" : "NEXT UP")
                     .font(.system(size: 10, weight: .bold, design: .rounded))
                     .tracking(1.2)
                     .foregroundStyle(Theme.textTertiary)
                 HStack(spacing: 8) {
-                    Image(systemName: entry.snapshot.nextDayType.symbolName)
+                    Image(systemName: entry.shownDay.symbolName)
                         .font(.system(size: 18))
-                        .foregroundStyle(Theme.accent(for: entry.snapshot.nextDayType))
-                    Text(entry.snapshot.nextDayType.displayName)
+                        .foregroundStyle(Theme.accent(for: entry.shownDay))
+                    Text(entry.shownDay.displayName)
                         .font(.system(size: 26, weight: .heavy, design: .rounded))
                         .foregroundStyle(Theme.textPrimary)
                 }
@@ -166,18 +170,18 @@ private struct SessionActionButton: View {
                 Text("Session started")
             }
             .font(.system(size: 11, weight: .semibold, design: .rounded))
-            .foregroundStyle(Theme.accent(for: entry.snapshot.nextDayType))
+            .foregroundStyle(Theme.accent(for: entry.shownDay))
         } else {
             Button(intent: StartSessionIntent()) {
                 HStack(spacing: 5) {
                     Image(systemName: "play.fill")
-                    Text("Start \(entry.snapshot.nextDayType.displayName)")
+                    Text("Start \(entry.shownDay.displayName)")
                 }
                 .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundStyle(.black)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 7)
-                .background(Theme.accent(for: entry.snapshot.nextDayType), in: Capsule())
+                .background(Theme.accent(for: entry.shownDay), in: Capsule())
             }
             .buttonStyle(.plain)
         }
@@ -191,10 +195,10 @@ private struct RectangularWidgetView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: entry.snapshot.nextDayType.symbolName)
+            Image(systemName: entry.shownDay.symbolName)
                 .widgetAccentable()
             VStack(alignment: .leading, spacing: 1) {
-                Text(entry.snapshot.nextDayType.displayName)
+                Text(entry.shownDay.displayName)
                     .font(.headline)
                 Text("\(entry.snapshot.streak)-day streak")
                     .font(.caption2)
@@ -211,7 +215,7 @@ private struct CircularWidgetView: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Image(systemName: entry.snapshot.nextDayType.symbolName)
+            Image(systemName: entry.shownDay.symbolName)
                 .widgetAccentable()
             Text("\(entry.snapshot.streak)")
                 .font(.system(size: 15, weight: .bold, design: .rounded))

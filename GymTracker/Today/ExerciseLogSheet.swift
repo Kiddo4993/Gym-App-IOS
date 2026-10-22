@@ -92,7 +92,21 @@ struct ExerciseLogSheet: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 VStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Text(exercise.muscleGroup)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Theme.accent(for: exercise.dayType))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Theme.accent(for: exercise.dayType).opacity(0.14), in: Capsule())
+                            if let last = exercise.lastTopSetText(in: unit, excluding: workout) {
+                                Text("Last time: \(last)")
+                                    .font(.caption.weight(.medium))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                        }
                         SetEntryRow(setNumber: 1, draft: draft, unit: unit)
                         SetEntryRow(setNumber: 2, draft: draft, unit: unit)
                     }
@@ -120,6 +134,7 @@ struct ExerciseLogSheet: View {
                 }
             }
         }
+        .presentationDragIndicator(.visible)
         .onAppear(perform: prefill)
     }
 
@@ -178,12 +193,13 @@ struct SetEntryRow: View {
                 .tracking(1.5)
                 .foregroundStyle(Theme.textTertiary)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 KeypadField(label: "Weight (\(unit.symbol))", field: .weight(setNumber), draft: draft)
-                KeypadField(label: "Full", field: .fullReps(setNumber), draft: draft)
-                KeypadField(label: "Partial", field: .partialReps(setNumber), draft: draft)
+                KeypadField(label: "Full reps", field: .fullReps(setNumber), draft: draft)
+                KeypadField(label: "Partials", field: .partialReps(setNumber), draft: draft)
             }
         }
+        .cardStyle(padding: 12)
     }
 }
 
@@ -202,12 +218,13 @@ struct KeypadField: View {
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(Theme.textTertiary)
             Text(draft.text(for: field).isEmpty ? "–" : draft.text(for: field))
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .font(.display(30, weight: .bold))
+                .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .padding(.vertical, 12)
                 .background(
-                    isActive ? Theme.accent.opacity(0.16) : Theme.surface,
+                    isActive ? Theme.accent.opacity(0.16) : Theme.surfaceRaised,
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous)
                 )
                 .overlay(
@@ -217,5 +234,8 @@ struct KeypadField: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { draft.active = field }
+        .animation(.easeOut(duration: 0.15), value: isActive)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
 }
